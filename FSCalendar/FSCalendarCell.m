@@ -50,6 +50,7 @@
     
     UILabel *label;
     CAShapeLayer *shapeLayer;
+    CAShapeLayer *eventIndicatorLayer;
     UIImageView *imageView;
     FSCalendarEventIndicator *eventIndicator;
     
@@ -72,6 +73,14 @@
     shapeLayer.opacity = 0;
     [self.contentView.layer insertSublayer:shapeLayer below:_titleLabel.layer];
     self.shapeLayer = shapeLayer;
+    
+    eventIndicatorLayer = [CAShapeLayer layer];
+    eventIndicatorLayer.backgroundColor = [UIColor clearColor].CGColor;
+    eventIndicatorLayer.borderWidth = 1.0;
+    eventIndicatorLayer.borderColor = [UIColor clearColor].CGColor;
+    eventIndicatorLayer.opacity = 0;
+    [self.contentView.layer insertSublayer:eventIndicatorLayer below:_shapeLayer];
+    self.eventIndicatorLayer = eventIndicatorLayer;
     
     eventIndicator = [[FSCalendarEventIndicator alloc] initWithFrame:CGRectZero];
     eventIndicator.backgroundColor = [UIColor clearColor];
@@ -162,7 +171,7 @@
     
     
     CGFloat titleHeight = self.bounds.size.height*5.0/6.0;
-    CGFloat diameter = MIN(self.bounds.size.height*5.0/6.0,self.bounds.size.width);
+    CGFloat diameter = MIN(self.bounds.size.height*6.0/6.0,self.bounds.size.width);
     diameter = diameter > FSCalendarStandardCellDiameter ? (diameter - (diameter-FSCalendarStandardCellDiameter)*0.5) : diameter;
     _shapeLayer.frame = CGRectMake((self.bounds.size.width-diameter)/2,
                                    (titleHeight-diameter)/2,
@@ -173,6 +182,18 @@
                                                 cornerRadius:CGRectGetWidth(_shapeLayer.bounds)*0.5*self.borderRadius].CGPath;
     if (!CGPathEqualToPath(_shapeLayer.path,path)) {
         _shapeLayer.path = path;
+    }
+    
+    _eventIndicatorLayer.frame = CGRectMake((self.bounds.size.width-diameter)/2,
+                                              (titleHeight-diameter)/2,
+                                              diameter,
+                                              diameter);
+    
+    CGPathRef indicatorPath = [UIBezierPath bezierPathWithRoundedRect:_eventIndicatorLayer.bounds
+                                                         cornerRadius:CGRectGetWidth(_eventIndicatorLayer.bounds)*0.5].CGPath;
+    
+    if (!CGPathEqualToPath(_eventIndicatorLayer.path,indicatorPath)) {
+        _eventIndicatorLayer.path = indicatorPath;
     }
     
     CGFloat eventSize = _shapeLayer.frame.size.height/6.0;
@@ -190,6 +211,7 @@
     [super prepareForReuse];
     [CATransaction setDisableActions:YES];
     _shapeLayer.opacity = 0;
+    _eventIndicatorLayer.opacity = 0;
     [self.contentView.layer removeAnimationForKey:@"opacity"];
 }
 
@@ -198,6 +220,7 @@
 - (void)performSelecting
 {
     _shapeLayer.opacity = 1;
+    _eventIndicatorLayer.opacity = 1;
     
 #define kAnimationDuration FSCalendarDefaultBounceAnimationDuration
     
@@ -261,12 +284,21 @@
         [self invalidateImage];
     }
     
-    if (_eventIndicator.hidden == (_numberOfEvents > 0)) {
-        _eventIndicator.hidden = !_numberOfEvents;
+//    if (_eventIndicator.hidden == (_numberOfEvents > 0)) {
+//        _eventIndicator.hidden = !_numberOfEvents;
+//    }
+    
+    if (_numberOfEvents > 0) {
+        _eventIndicatorLayer.opacity = 1.0;
+        
+        
+        _eventIndicatorLayer.fillColor = [UIColor colorWithRed:212/255.0f green:211/255.0f blue:226/255.0f alpha:1.0].CGColor;
+    } else {
+        _eventIndicatorLayer.opacity = 0.0;
     }
     
-    _eventIndicator.numberOfEvents = self.numberOfEvents;
-    _eventIndicator.color = self.colorsForEvents;
+//    _eventIndicator.numberOfEvents = self.numberOfEvents;
+//    _eventIndicator.color = self.colorsForEvents;
     
 
 }
@@ -439,7 +471,7 @@ OFFSET_PROPERTY(preferredEventOffset, PreferredEventOffset, _appearance.eventOff
 
 - (BOOL)isPlaceholder
 {
-    return (self.calendar.scope == FSCalendarScopeMonth && (self.monthPosition == FSCalendarMonthPositionPrevious || self.monthPosition == FSCalendarMonthPositionNext)) || self.monthPosition == FSCalendarMonthPositionOutOfBounds;
+    return self.monthPosition == FSCalendarMonthPositionPrevious || self.monthPosition == FSCalendarMonthPositionNext || self.monthPosition == FSCalendarMonthPositionOutOfBounds;
 }
 
 @end
